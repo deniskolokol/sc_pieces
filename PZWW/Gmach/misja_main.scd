@@ -107,6 +107,7 @@ ServerQuit.removeAll;
     ~snare_brush_echo = Buffer.readChannel(s, ~path +/+ "samples/snare_brush_echo.wav", channels:[0]);
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+
     "> Preparing patterns...".post;
     ~patts = Dictionary.new;
     ~patts.add(\open_hat -> Pbind(
@@ -143,19 +144,16 @@ ServerQuit.removeAll;
         \instrument, \bufplay,
         \dur, Pseq(~dur ! 8, inf),
         \buf, Pseq([
-            Pfuncn({ ~snare.bufnum }, 24),
-            Pfuncn({ ~snare_brush_hard.bufnum }, 8),
+            Pfuncn({ ~snare }, 24),
+            Pfuncn({ ~snare_brush_hard }, 8),
         ], inf),
         \amp, Pseq([
-            // fig 1 - main line
-            Pseq(#[\, \, 1, \, \, \, 1, \], 3),
+            Pseq(    #[ \,   \,   1,   \,   \,   \,   1,  \  ], 3), // fig 1 - main line
             Pxrand([
-                // fig 2 - syncope 1
-                Pseq(#[\, \, 1, \, \, \, 1, 0.5], 1),
-                // fig 3 - syncope 2
-                Pseq(#[\, 1, \, 1, \, \, 1, 0.5], 1),
-                // fig 3 - syncope 4
-                Pseq(#[1, 0.2, 1, 0.2, \, \, 0.2, 1], 1),
+                Pseq(#[  \,   \,   1,   \,   \,   \,   1, 0.5 ], 1), // fig 2 - syncope 1
+                Pseq(#[  \,   1,   \,   1,   \,   \,   1, 0.5 ], 1), // fig 3 - syncope 2
+                Pseq(#[  1, 0.2,   1, 0.2,   \,   \, 0.2,   1 ], 1), // fig 3 - syncope 4
+                Pseries(0.5, 0.071, 8).trace, // fig 3 - syncope 4
             ], 1)
         ], inf),
         \pan, -0.3
@@ -165,7 +163,6 @@ ServerQuit.removeAll;
         \rate, Pwhite(0.88, 1.1, inf),
         \dur, Pseq(~dur ! 8, inf),
         \buf, Pfunc({ ~snare_brush_echo }),
-        // \amp, Pseq([\, \, \, \, \, 1, \, \], inf),
         \amp, Pseq([
             // fig 1 - main line
             Pseq([\, \, \, \, \, \, \, 1], 1),
@@ -177,7 +174,7 @@ ServerQuit.removeAll;
     ));
 
     // Tempo.
-    ~tempo = TempoClock.new(97/60).schedAbs(0, { ~tempo.beatsPerBar_(4) });
+    ~tempo = TempoClock.new(90/60).schedAbs(0, { ~tempo.beatsPerBar_(4) });
     ~dur = 1/4;
     postf("OK\n");
 
