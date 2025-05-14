@@ -37,23 +37,26 @@ SynthDef(\moogy_chords, {
     atk=0.1, dec=0.1, rel=0.1, tempo=2,
     spread=0.6, center=(-0.2), out=0, fx=0, fxsend=(-25);
 
-    var signal, env, freqOsc, trig, degree;
+    var signal, env, noteOsc, freqOsc, trig, degree;
 
     env = Env.adsr(atk, dec, 1, rel).ar(Done.freeSelf, \gate.kr(1));
     trig = TDuty.ar(
-        Dseq([3/4, 3/4, 1/2], inf),
+        Dseq([3/4, 3/4, 1/2, 2], inf) / tempo,
         0,
-        1
+        Dseq([1, 1, 1, 0], inf)
     );
     degree = Duty.ar(
         2,
         0,
         Dseq([0, 2, -1, -3], inf)
     );
-    freqOsc = (DegreeToKey.ar(bufnum, degree + [0, 3, 5, 7]) + freq.cpsmidi).midicps;
+    noteOsc = DegreeToKey.ar(bufnum, degree + [0, 3, 5, 7]) + freq.cpsmidi;
+    freqOsc = noteOsc.midicps;
     freqOsc = freqOsc * { Rand(-0.1, 0.1).midiratio }.dup(4);
     signal = Saw.ar(freqOsc);
     signal = Splay.ar(signal, spread, center:center);
+
+    // modulate cutoff freq with the envelope controlled by the trigger
     signal = MoogFF.ar(signal,
         Env(
             [100, 1500, 100],

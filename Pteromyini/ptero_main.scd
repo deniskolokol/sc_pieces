@@ -3,7 +3,11 @@
 (
 // Harmony
 ~rootNote = "g3";
-~bufScale = Buffer.loadCollection(s, Scale.locrian);
+~bufScale = Buffer.loadCollection(s, Scale.ionian);
+
+// Quantization parameters (4 beats per cycle)
+~quant = 4;
+~tempo = 2;
 
 // Synths
 ~synths = (
@@ -16,11 +20,11 @@
             \gain, 2.4,
             \freq, ~rootNote.notemidi.midicps,
             \amp, 0.8,
-            \tempo, 2
+            \tempo, ~tempo
         ]
     ),
     moogy_chords: (
-        synth: nil
+        synth: nil,
         params_default: [
             \out, 0,
             \bufnum, ~bufScale.bufnum,
@@ -28,14 +32,14 @@
             \gain, 2.4,
             \freq, ~rootNote.notemidi.midicps,
             \amp, 0.7,
-            \tempo, 2
+            \tempo, ~tempo
         ]
     ),
     beat_pulse_1: (
         synth: nil,
         params_default: [
             \out, 0,
-            \tempo, 2,
+            \tempo, ~tempo,
             \att, 0.1,
             \rel, 0.1
         ]
@@ -45,14 +49,21 @@
 Server.default = s = Server.local;
 s.waitForBoot({
     var midiFunc = List.new;
+    var clock = TempoClock(~tempo);
     var synthOnOff = { |synthName|
-        if (~synths[synthName].synth.isNil) {
+        if (~synths[synthName][\synth].isNil) {
             postf("starting %...", synthName);
-            ~synths[synthName].synth = Synth(synthName, ~synths[synthName].params_default);
+            clock.schedAbs(clock.nextTimeOnGrid(~quant), {
+                ~synths[synthName][\synth] = Synth(synthName, ~synths[synthName][\params_default]);
+                nil; // Return nil to prevent rescheduling
+            });
         } {
             postf("freeing %...", synthName);
-            ~synths[synthName].synth.set(\gate, 0);
-            ~synths[synthName].synth = nil;
+            clock.schedAbs(clock.nextTimeOnGrid(~quant), {
+                ~synths[synthName][\synth].set(\gate, 0);
+                nil; // Return nil to prevent rescheduling
+            });
+            ~synths[synthName][\synth] = nil;
         };
         postf(" done\n");
     };
@@ -85,19 +96,22 @@ s.waitForBoot({
     midiFunc = midiFunc ++ [
 
         // ~synthMoog controls
-        MIDIFunc.cc({ |val| ~synths[\moogy_line].synth.set(\cutoff, val.linlin(0, 127, 50, 4000).postln)}, 24),
-        MIDIFunc.cc({ |val| ~synths[\moogy_line].synth.set(\gain, val.linlin(0, 127, 0, 4).postln)}, 25),
-        MIDIFunc.cc({ |val| ~synths[\moogy_line].synth.set(\index, val.linlin(0, 127, 0.1, 2.0))}, 26),
-        MIDIFunc.cc({ |val| ~synths[\moogy_line].synth.set(\amp, val.linlin(0, 127, 0, 1))}, 12),
+        MIDIFunc.cc({ |val| ~synths[\moogy_line][\synth].set(\cutoff, val.linlin(0, 127, 50, 4000).postln)}, 24),
+        MIDIFunc.cc({ |val| ~synths[\moogy_line][\synth].set(\gain, val.linlin(0, 127, 0, 4).postln)}, 25),
+        MIDIFunc.cc({ |val| ~synths[\moogy_line][\synth].set(\index, val.linlin(0, 127, 0.1, 2.0))}, 26),
+        MIDIFunc.cc({ |val| ~synths[\moogy_line][\synth].set(\amp, val.linlin(0, 127, 0, 1))}, 12),
 
         // ~synthBeat controls
-        MIDIFunc.cc({ |val| ~synths[\beat_pulse_1].synth.set(\amp, val.linlin(0, 127, 0, 1))}, 11),
+        MIDIFunc.cc({ |val| ~synths[\beat_pulse_1][\synth].set(\amp, val.linlin(0, 127, 0, 1))}, 11),
 
         // common controls
         MIDIFunc.cc({ |val, num|
             // Common tempo control
             ~synths.do { |synthUnit|
-                synthUnit.synth.set(\tempo, [0.5, 2.5, \lin, 0.25, 2].asSpec.map(val.linlin(0, 127, 0.0, 1.0)))
+                synthUnit[\synth].set(
+                    \tempo,
+                    [0.5, 2.5, \lin, 0.25, 2].asSpec.map(val.linlin(0, 127, 0.0, 1.0))
+                )
             };
         }, 17),
         // MIDIFunc.cc({ |val, num| [val, num].postln}),
