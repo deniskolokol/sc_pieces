@@ -9,13 +9,21 @@ SynthDef(\moogy_line, {
     var signal, env, freqOsc, degree;
 
     env = Env.adsr(atk, dec, 1, rel).ar(Done.freeSelf, \gate.kr(1));
+
+    // NB: `level` param is a chromatic upward progression:
+    // - Ddup(4, Dseries(0, 1, 4)): Creates [0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3]
+    // - Dseq([0, Drand([2, 3, 4], 1), -1, Drand([-3, -4, -5], 1)], 4): Repeats the pattern 4 times
+    // The + operation combines them element-wise.
     degree = Duty.ar(
         Dseq([
             Dseq([1/2, 1/4], 4),
             Dseq([1/4], 4)
         ] / tempo, inf),
         0,
-        Dseq([0, Drand([2, 3, 4], 1), -1, Drand([-3, -4, -5], 1)], inf)
+        Dseq(
+            Ddup(4, Dseries(0, 1, 4)) + Dseq([0, Drand([2, 3, 4], 1), -1, Drand([-3, -4, -5], 1)], 4),
+            inf
+        )
     );
     freqOsc = (DegreeToKey.ar(bufnum, degree) + freq.cpsmidi).midicps;
     freqOsc = freqOsc * { Rand(-0.1, 0.1).midiratio }.dup(4);

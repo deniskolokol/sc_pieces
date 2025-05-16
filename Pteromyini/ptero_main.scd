@@ -59,10 +59,7 @@ s.waitForBoot({
             });
         } {
             postf("freeing %...", synthName);
-            clock.schedAbs(clock.nextTimeOnGrid(~quant), {
-                ~synths[synthName][\synth].set(\gate, 0);
-                nil; // Return nil to prevent rescheduling
-            });
+            ~synths[synthName][\synth].set(\gate, 0);
             ~synths[synthName][\synth] = nil;
         };
         postf(" done\n");
@@ -83,43 +80,50 @@ s.waitForBoot({
     // NoteOn funcs
     midiFunc = midiFunc ++ [
         MIDIFunc.noteOn({ |val, num| synthOnOff.(\moogy_line)}, 70),
-        MIDIFunc.noteOn({ |val, num| synthOnOff.(\beat_pulse_1)}, 58),
+        MIDIFunc.noteOn({ |val, num| synthOnOff.(\moogy_chords)}, 58),
+        MIDIFunc.noteOn({ |val, num| synthOnOff.(\beat_pulse_1)}, 69),
         MIDIFunc.noteOn({ |val, num|
             synthOnOff.(\moogy_line);
             synthOnOff.(\moogy_chords);
             synthOnOff.(\beat_pulse_1);
         }, 44),
-        MIDIFunc.noteOn({ |val, num| [val, num].postln})
+        // MIDIFunc.noteOn({ |val, num| [val, num].postln})
     ];
 
     // Control messages funcs
     midiFunc = midiFunc ++ [
 
-        // ~synthMoog controls
-        MIDIFunc.cc({ |val| ~synths[\moogy_line][\synth].set(\cutoff, val.linlin(0, 127, 50, 4000).postln)}, 24),
-        MIDIFunc.cc({ |val| ~synths[\moogy_line][\synth].set(\gain, val.linlin(0, 127, 0, 4).postln)}, 25),
+        // \moogy_line controls
+        MIDIFunc.cc({ |val| ~synths[\moogy_line][\synth].set(\cutoff, val.linlin(0, 127, 50, 4000))}, 24),
+        MIDIFunc.cc({ |val| ~synths[\moogy_line][\synth].set(\gain, val.linlin(0, 127, 0, 4))}, 25),
         MIDIFunc.cc({ |val| ~synths[\moogy_line][\synth].set(\index, val.linlin(0, 127, 0.1, 2.0))}, 26),
         MIDIFunc.cc({ |val| ~synths[\moogy_line][\synth].set(\amp, val.linlin(0, 127, 0, 1))}, 12),
 
-        // ~synthBeat controls
-        MIDIFunc.cc({ |val| ~synths[\beat_pulse_1][\synth].set(\amp, val.linlin(0, 127, 0, 1))}, 11),
+        // \moogy_chords controls
+        MIDIFunc.cc({ |val| ~synths[\moogy_chords][\synth].set(\cutoff, val.linlin(0, 127, 50, 4000))}, 27),
+        MIDIFunc.cc({ |val| ~synths[\moogy_chords][\synth].set(\gain, val.linlin(0, 127, 0, 4))}, 28),
+        MIDIFunc.cc({ |val| ~synths[\moogy_chords][\synth].set(\index, val.linlin(0, 127, 0.1, 2.0))}, 29),
+        MIDIFunc.cc({ |val| ~synths[\moogy_chords][\synth].set(\amp, val.linlin(0, 127, 0, 1))}, 11),
+
+        // \beat_pulse_1 controls
+        MIDIFunc.cc({ |val| ~synths[\beat_pulse_1][\synth].set(\amp, val.linlin(0, 127, 0, 1))}, 14),
 
         // common controls
         MIDIFunc.cc({ |val, num|
             // Common tempo control
+            ~tempo = [0.5, 2.5, \lin, 0.25, 2].asSpec.map(val.linlin(0, 127, 0.0, 1.0));
             ~synths.do { |synthUnit|
-                synthUnit[\synth].set(
-                    \tempo,
-                    [0.5, 2.5, \lin, 0.25, 2].asSpec.map(val.linlin(0, 127, 0.0, 1.0))
-                )
+                synthUnit[\synth].set(\tempo, ~tempo)
             };
         }, 17),
         // MIDIFunc.cc({ |val, num| [val, num].postln}),
     ];
 
     CmdPeriod.doOnce({
+        "Clean up on exit...".post;
         midiFunc.do(_.free);
         MIDIIn.disconnectAll;
+        " done".postln;
     });
 })
 )
