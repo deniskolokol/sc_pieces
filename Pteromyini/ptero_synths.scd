@@ -1,6 +1,7 @@
 // Synth Defs
 
 (
+// Generators
 SynthDef(\moogy_line, {
     arg amp=0.2, freq=110, bufnum=0, cutoff=100, gain=2,
     atk=0.1, dec=0.1, rel=0.1, tempo=2,
@@ -49,7 +50,7 @@ SynthDef(\moogy_chords, {
 
     env = Env.adsr(atk, dec, 1, rel).ar(Done.freeSelf, \gate.kr(1));
     trig = TDuty.ar(
-        Dseq([3/4, 3/4, 1/2, 2], inf) / tempo,
+        Dseq([3/4, 3/4, 1/2, 6], inf) / tempo,
         0,
         Dseq([1, 1, 1, 0], inf)
     );
@@ -58,6 +59,7 @@ SynthDef(\moogy_chords, {
         0,
         Dseq([0, 2, -1, -3], inf)
     );
+    // form a chord:
     noteOsc = DegreeToKey.ar(bufnum, degree + [0, 3, 5, 7]) + freq.cpsmidi;
     freqOsc = noteOsc.midicps;
     freqOsc = freqOsc * { Rand(-0.1, 0.1).midiratio }.dup(4);
@@ -85,9 +87,10 @@ SynthDef(\moogy_chords, {
 
 
 SynthDef(\beat_pulse_1, {
-    arg tempo=2, out=0, pan=0, amp=1, atk=0.1, dec=0.1, rel=0.1, ca=6, cr=(-3),
+    arg tempo=2, out=0, pan=0, amp=1, atk=0.1, dec=0.1, rel=0.1, ca=6, cr=(-4),
     fx=0, fxsend=(-25);
 
+    var env = Env.adsr(atk, dec, 1, rel).ar(Done.freeSelf, \gate.kr(1));
     var envPerc = Env.perc(0, 0.2, 1, -5);
     var trig = TDuty.kr(
         [1/2, 1, 1/4] / tempo,
@@ -95,18 +98,22 @@ SynthDef(\beat_pulse_1, {
             Dser([3/4, 3/4, 1/2] / tempo, inf)
         )
     );
-    var kick = Ringz.ar(T2A.ar([trig[0], trig[1]]), [45, 330], [0.5, 0.1], [0.9, 0.1]);
-    var pulse = Ringz.ar(T2A.ar(trig[2]), 90, 0.2,2).clip*0.2;
-    var hat = HPF.ar(
+    var kick, pulse, hat, signal;
+    var snareFreq, snare;
+    kick = Ringz.ar(T2A.ar([trig[0], trig[1]]), [45, 330], [0.5, 0.1], [0.9, 0.1]);
+    pulse = Ringz.ar(T2A.ar(trig[2]), 90, 0.2,2).clip*0.2;
+    hat = HPF.ar(
         LPF.ar(
             WhiteNoise.ar(Decay2.ar(LFNoise1.ar(8, 0.3, 0.5), 0.02, 0.1)),
             1678
         ),
         17774
     ) * EnvGen.kr(envPerc, trig[1]);
-    var snare = BPF.ar(LFNoise0.ar(98**2,0.4), 98**2, 1, 0.04)
+    snare = BPF.ar(LFNoise0.ar(98**2,0.4), 98**2, 1, 0.04)
     * EnvGen.kr(envPerc, trig[1]);
-    var signal = MidEQ.ar(
+
+    // sum it all up
+    signal = MidEQ.ar(
         kick
         +
         snare
@@ -116,7 +123,6 @@ SynthDef(\beat_pulse_1, {
         pulse,
         14000, 0.7, 8
     );
-    var env = Env.adsr(atk, dec, 1, rel).ar(Done.freeSelf, \gate.kr(1));
     signal = Limiter.ar(signal, amp) * env;
     signal = Pan2.ar(signal, pan);
 
@@ -126,4 +132,5 @@ SynthDef(\beat_pulse_1, {
     // FX send
     Out.ar(fx, signal * fxsend.dbamp);
 }).add;
+
 )
