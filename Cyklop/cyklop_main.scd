@@ -2,6 +2,9 @@
 // an 80-ton, self-propelled and self-steering, unmanned armored vehicle
 // equipped with a full arsenal of weapons, including an antimatter launcher.
 
+// First, quit the server to start clean.
+s.quit;
+
 (
 // Server config.
 s = Server.local;
@@ -239,7 +242,3 @@ s.waitForBoot({
     // ~evnts[\beat_base].value;
 })
 )
-
-
-// Quit the server and start the whole thing again
-s.quit;

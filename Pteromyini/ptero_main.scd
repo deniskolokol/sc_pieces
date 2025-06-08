@@ -87,7 +87,7 @@ s.waitForBoot({
             synthOnOff.(\moogy_chords);
             synthOnOff.(\beat_pulse_1);
         }, 44),
-        // MIDIFunc.noteOn({ |val, num| [val, num].postln})
+        MIDIFunc.noteOn({ |val, num| [val, num].postln})
     ];
 
     // Control messages funcs
@@ -120,7 +120,7 @@ s.waitForBoot({
                 synthUnit[\synth].set(\tempo, ~tempo)
             };
         }, 17),
-        // MIDIFunc.cc({ |val, num| [val, num].postln}),
+        MIDIFunc.cc({ |val, num| [val, num].postln}),
     ];
 
     CmdPeriod.doOnce({
