@@ -1,17 +1,19 @@
-// Inspired by the Cyklop (from "Niezwićiężony" by Stanisław Lem):
-// an 80-ton, self-propelled and self-steering, unmanned armored vehicle
-// equipped with a full arsenal of weapons, including an antimatter launcher.
+// Inspired by the novel "Memoirs Found in a Bathtub" ("Pamiętnik znaleziony
+// w wannie") by Stanisław Lem).
 
 // Quit the server before starting the whole thing.
 s.quit;
 
 (
 // Server config.
-s = Server.local;
-s.options.numOutputBusChannels_(2);
-s.options.numInputBusChannels_(2);
-s.options.sampleRate_(48000);
-s.options.memSize_(2.pow(20));
+Server.default = s = Server.local;
+
+s.options.numInputBusChannels = 2; // Behringer U-Foria: 2; Focusrite Saffire: 4
+s.options.numOutputBusChannels = 2; // Behringer U-Foria: 2; Focusrite Saffire: 10
+s.options.blockSize = 512;
+s.options.memSize = 2097152; // 2Gb
+s.options.numBuffers = 2048;
+
 s.newBusAllocators;
 ServerBoot.removeAll;
 ServerTree.removeAll;
