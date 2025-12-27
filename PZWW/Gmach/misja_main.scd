@@ -76,7 +76,7 @@ ServerQuit.removeAll;
     //          delete this and use ~makeBuffers
     ~bufRead = { |x|
         var baseDir = PathName.new(
-            "~/Music/material/Drum samples/513TubeDrumHits_Wav_SP/Samples/"
+            "~/Data/Audio/Drum samples/513TubeDrumHits_Wav_SP/Samples/"
         );
         Buffer.readChannel(s, (baseDir +/+ x).fullPath, channels:[0])
     };
@@ -215,7 +215,7 @@ ServerQuit.removeAll;
     var buttons = List.new;
     var palette = QPalette.system;
 
-    ~win = Window.new("<new song>", Rect(0, 540, 807, 863));
+    ~win = Window.new("<new song>", Rect(0, 540, 807, 863), resizable: false);
     ~win.view.decorator = FlowLayout(~win.view.bounds, 5@5, 5@5);
     palette.setColor(Color(35, 36, 47), \window);
     ~win.view.palette = palette;
