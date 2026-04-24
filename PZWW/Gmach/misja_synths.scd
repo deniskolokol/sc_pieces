@@ -1,9 +1,13 @@
 (
 // BUFFERS
 SynthDef(\bufplay, {
-    arg out=0, buf=0, rate=1, amp=1, pan=0;
+    arg out=0, outRec, buf=0, rate=1, amp=1, pan=0;
     var signal = PlayBuf.ar(1, buf, BufRateScale.ir(buf)*rate, doneAction: 2);
     signal = signal * amp;
+
+    // write mono copy to recording bus (if set)
+    Out.ar(outRec, signal);
+
     signal = Pan2.ar(signal, pan);
     Out.ar(out, signal)
 }).add;

@@ -1,15 +1,29 @@
 // Inspired by the novel "Memoirs Found in a Bathtub" ("Pamiętnik znaleziony
 // w wannie") by Stanisław Lem).
 
+
 // Quit the server before starting the whole thing.
 s.quit;
+
+// Record:
+s.record(bus: 8, numChannels: 3);
+s.stopRecording;
+
 
 (
 // Server config.
 Server.default = s = Server.local;
 
-s.options.numInputBusChannels = 2; // Behringer U-Foria: 2; Focusrite Saffire: 4
-s.options.numOutputBusChannels = 2; // Behringer U-Foria: 2; Focusrite Saffire: 10
+// Behringer U-Foria: 2
+// Focusrite Saffire: 4
+// PreSonus Studio: 18
+s.options.numInputBusChannels = 18;
+
+// Behringer U-Foria: 2
+// Focusrite Saffire: 10
+// PreSonus Studio: 18
+s.options.numOutputBusChannels = 18;
+
 s.options.blockSize = 512;
 s.options.memSize = 2097152; // 2Gb
 s.options.numBuffers = 2048;
@@ -23,6 +37,16 @@ ServerQuit.removeAll;
 // Global variables.
 ~out = 0;
 ~path = PathName(thisProcess.nowExecutingPath).parentPath;
+
+// Routing
+~outDrums = 0;
+
+// Additional buses for separate recording of drum elements
+~outRecHihat = 8;
+~outRecKick = 9;
+~outRecSnare = 10;
+~outRecTom = 11;
+
 
 
 // Global functions.
@@ -112,21 +136,23 @@ ServerQuit.removeAll;
 
     "> Preparing patterns...".post;
     ~patts = Dictionary.new;
-    ~patts.add(\open_hat -> Pbind(
+    ~patts[\open_hat]= Pbind(
         \instrument, \bufplay,
         \dur, Pseq(~dur ! 8, inf),
         \buf, Pfunc({ ~ohat }),
         \amp, Pseq([1, \, Pwhite(0.85, 1.0, 1), \, 1, \, Pwhite(0.85, 1.0, 1), \], inf), // first beat is an accent
-        \pan, 0.3
-    ));
-    ~patts.add(\open_hat_support -> Pbind(
+        \pan, 0.3,
+        \outRec, Pfunc({ ~outRecHihat }),
+    );
+    ~patts[\open_hat_support] = Pbind(
         \instrument, \bufplay,
         \dur, Pseq(~dur ! 8, inf),
         \buf, Pfunc({ ~hihat }),
         \amp, Pseq([Pwhite(0.85, 1.0, 1), \, \, \, Pwhite(0.85, 1.0, 1), \, \, \], inf),
-        \pan, 0.3
-    ));
-    ~patts.add(\sliding_hat_support -> Pbind(
+        \pan, 0.3,
+        \outRec, Pfunc({ ~outRecHihat }),
+    );
+    ~patts[\sliding_hat_support] = Pbind(
         \instrument, \bufplay,
         \dur, Pseq(~dur ! 8, inf),
         \buf, Pfunc({ [~sli_hi_hat1, ~sli_hi_hat2, ~sli_hi_hat3].choose }),
@@ -134,15 +160,17 @@ ServerQuit.removeAll;
             Pseq([\, \, \, \, \, \, \, Pxrand([0, Pwhite(0.2, 0.8, 1)], 1)], 1),
             Pseq([\, \, \, \, \, \, \, 1], 1),
         ], inf),
-        \pan, 0.3
-    ));
-    ~patts.add(\kick -> Pbind(
+        \pan, 0.3,
+        \outRec, Pfunc({ ~outRecHihat }),
+    );
+    ~patts[\kick] = Pbind(
         \instrument, \bufplay,
         \dur, Pseq(~dur ! 8, inf),
         \buf, Pfunc({ ~kick }),
         \amp, Pseq(#[1, \, \, \, 1, \, \, \], inf),
-    ));
-    ~patts.add(\snare -> Pbind(
+        \outRec, Pfunc({ ~outRecKick }),
+    );
+    ~patts[\snare] = Pbind(
         \instrument, \bufplay,
         \dur, Pseq(~dur ! 8, inf),
         \buf, Pseq([
@@ -154,17 +182,18 @@ ServerQuit.removeAll;
             Pxrand([
                 Pseq(#[  \,   \,   1,   \,   \,   \,   1, 0.5 ], 1), // fig 2 - syncope 1
                 Pseq(#[  \,   1,   \,   1,   \,   \,   1, 0.5 ], 1), // fig 3 - syncope 2
-                Pseq(#[  1, 0.2,   1, 0.2,   \,   \, 0.2,   1 ], 1), // fig 3 - syncope 4
-                Pseries(0.5, 0.071, 8).trace, // fig 3 - syncope 4
+                Pseq(#[  1, 0.2,   1, 0.2,   \,   \, 0.2,   1 ], 1), // fig 4 - syncope 3
+                Pseq(#[  0.6, 0.8, 1,    \, 0.6, 0.8, 0.2,  1 ], 1), // fig 5 - syncope 4
             ], 1)
         ], inf),
-        \pan, -0.3
-    ));
-    ~patts.add(\snare_sin -> Pbind(
+        \pan, -0.3,
+        \outRec, Pfunc({ ~outRecSnare }),
+    );
+    ~patts[\snare_sin] = Pbind(
         \instrument, \bufplay,
         \rate, Pwhite(0.88, 1.1, inf),
         \dur, Pseq(~dur ! 8, inf),
-        \buf, Pfunc({ ~snare_brush_echo }),
+        \buf, Pfunc({ ~snare_brush_echo }), 
         \amp, Pseq([
             // fig 1 - main line
             Pseq([\, \, \, \, \, \, \, 1], 1),
@@ -172,8 +201,9 @@ ServerQuit.removeAll;
             Pseq([\, \, \, \, \, \, \, Pwhite(0.33, 0.88, 1)], 1),
             Pseq([Pwrand([0, Pwhite(0.33, 0.66, 1)], [0.4, 0.6], 1), \, \, \, \, 1, \, 1], 1),
         ], inf),
-        \pan, -0.3
-    ));
+        \pan, -0.3,
+        \outRec, Pfunc({ ~outRecSnare }),
+    );
 
     // Tempo.
     ~tempo = TempoClock.new(90/60).schedAbs(0, { ~tempo.beatsPerBar_(4) });
