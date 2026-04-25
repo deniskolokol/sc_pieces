@@ -133,9 +133,24 @@ ServerQuit.removeAll;
     ~snare_brush_echo = Buffer.readChannel(s, ~path +/+ "samples/snare_brush_echo.wav", channels:[0]);
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+    // Tempo.
+    ~tempo = TempoClock.new(90/60).schedAbs(0, { ~tempo.beatsPerBar_(4) });
+    ~dur = 1/4;
 
     "> Preparing patterns...".post;
     ~patts = Dictionary.new;
+    ~patts[\hi_hat]= Pbind(
+        \instrument, \bufplay,
+        \dur, Pseq(~dur / 2 ! 16, inf),
+        \buf, Pfunc({ ~hihat }),
+        \amp, Pseq(
+            // first beat is an accent
+            ([1, \, Pwhite(0.85, 1.0, 1), \, 1, \, Pwhite(0.85, 1.0, 1), \] ! 2).flatten,
+            inf
+        ),
+        \pan, 0.3,
+        \outRec, Pfunc({ ~outRecHihat }),
+    );
     ~patts[\open_hat]= Pbind(
         \instrument, \bufplay,
         \dur, Pseq(~dur ! 8, inf),
@@ -167,10 +182,30 @@ ServerQuit.removeAll;
         \instrument, \bufplay,
         \dur, Pseq(~dur ! 8, inf),
         \buf, Pfunc({ ~kick }),
-        \amp, Pseq(#[1, \, \, \, 1, \, \, \], inf),
+        // kick is too loud, so we set its amplitude to 0.8 and leave some
+        // headroom for reverb and other effects.
+        \amp, Pseq(#[0.8, \, \, \, 0.8, \, \, \], inf),
         \outRec, Pfunc({ ~outRecKick }),
     );
-    ~patts[\snare] = Pbind(
+
+    ~patts[\snare_sparse] = Pbind(
+        \instrument, \bufplay,
+        \dur, Pseq(~dur ! 8, inf),
+        \buf, Pfunc({ ~snare }),
+        \amp, Pseq([
+            Pseq(    #[ \,   \,   1,   \,   \,   \,   1,  \  ], 3), // fig 1 - main line
+            Pxrand([
+                Pseq(#[ \,   \,   1,   \,   \,   \,   1,  \ ], 1), // fig 2 - drum fill 1
+                Pseq(#[ \,   1,   \,   1,   \,   \,   1,  \ ], 1), // fig 3 - drum fill 2
+                Pseq(#[ \, 0.4,   1, 0.2,   \,   \, 0.2,  1 ], 1), // fig 4 - drum fill 3
+                Pseq(#[ \, 0.8,   1,   \, 0.6, 0.8, 0.2,  1 ], 1), // fig 5 - drum fill 4
+            ], 1)
+        ], inf),
+        \pan, -0.3,
+        \outRec, Pfunc({ ~outRecSnare }),
+    );
+
+    ~patts[\snare_dense] = Pbind(
         \instrument, \bufplay,
         \dur, Pseq(~dur ! 8, inf),
         \buf, Pseq([
@@ -180,16 +215,30 @@ ServerQuit.removeAll;
         \amp, Pseq([
             Pseq(    #[ \,   \,   1,   \,   \,   \,   1,  \  ], 3), // fig 1 - main line
             Pxrand([
-                Pseq(#[  \,   \,   1,   \,   \,   \,   1, 0.5 ], 1), // fig 2 - syncope 1
-                Pseq(#[  \,   1,   \,   1,   \,   \,   1, 0.5 ], 1), // fig 3 - syncope 2
-                Pseq(#[  1, 0.2,   1, 0.2,   \,   \, 0.2,   1 ], 1), // fig 4 - syncope 3
-                Pseq(#[  0.6, 0.8, 1,    \, 0.6, 0.8, 0.2,  1 ], 1), // fig 5 - syncope 4
+                Pseq(#[  \,   \,   1,   \,   \,   \,   1, 0.5 ], 1), // fig 2 - drum fill 1
+                Pseq(#[  \,   1,   \,   1,   \,   \,   1, 0.5 ], 1), // fig 3 - drum fill 2
+                Pseq(#[  1, 0.2,   1, 0.2,   \,   \, 0.2,   1 ], 1), // fig 4 - drum fill 3
+                Pseq(#[  0.6, 0.8, 1,    \, 0.6, 0.8, 0.2,  1 ], 1), // fig 5 - drum fill 4
             ], 1)
         ], inf),
         \pan, -0.3,
         \outRec, Pfunc({ ~outRecSnare }),
     );
-    ~patts[\snare_sin] = Pbind(
+    ~patts[\snare_fill] = Pbind(
+        \instrument, \bufplay,
+        \dur, Pseq(~dur ! 8, inf),
+        \buf, Pfunc({ ~snare }), 
+        \amp, Pseq([
+            // fig 1 - main line
+            Pseq([\, \, \, \, \, \, \, \], 1),
+            Pseq([\, \, \, \, \, \, \, \], 1),
+            Pseq([\, \, \, \, \, \, \, Pwhite(0.33, 0.88, 1)], 1),
+            Pseq([Pwrand([0, Pwhite(0.33, 0.66, 1)], [0.4, 0.6], 1), \, \, \, \, 1, \, 1], 1),
+        ], inf),
+        \pan, -0.3,
+        \outRec, Pfunc({ ~outRecSnare }),
+    );
+    ~patts[\snare_brush_echo_fill] = Pbind(
         \instrument, \bufplay,
         \rate, Pwhite(0.88, 1.1, inf),
         \dur, Pseq(~dur ! 8, inf),
@@ -204,14 +253,26 @@ ServerQuit.removeAll;
         \pan, -0.3,
         \outRec, Pfunc({ ~outRecSnare }),
     );
-
-    // Tempo.
-    ~tempo = TempoClock.new(90/60).schedAbs(0, { ~tempo.beatsPerBar_(4) });
-    ~dur = 1/4;
     postf("OK\n");
 
     "> Loading event definitions...".post;
     ~evnts = List.new;
+
+    ~evnts.add(Dictionary[
+        \name -> \beat_base_hhat,
+        \patt -> Pdef(
+            \beat_base_hhat,
+            Ptpar([
+                0.0, ~patts[\hi_hat],
+                0.0, ~patts[\open_hat_support],
+                0.0, ~patts[\sliding_hat_support],
+                0.0, ~patts[\kick],
+                0.0, ~patts[\snare_sparse],
+                0.0, ~patts[\snare_fill],
+            ])
+        )
+    ]);
+
     ~evnts.add(Dictionary[
         \name -> \beat_hat,
         \patt -> Pdef(
@@ -225,16 +286,16 @@ ServerQuit.removeAll;
     ]);
 
     ~evnts.add(Dictionary[
-        \name -> \beat_base,
+        \name -> \beat_base_ohat,
         \patt -> Pdef(
-            \beat_base,
+            \beat_base_ohat,
             Ptpar([
                 0.0, ~patts[\open_hat],
                 0.0, ~patts[\open_hat_support],
                 0.0, ~patts[\sliding_hat_support],
                 0.0, ~patts[\kick],
-                0.0, ~patts[\snare],
-                0.0, ~patts[\snare_sin],
+                0.0, ~patts[\snare_dense],
+                0.0, ~patts[\snare_brush_echo_fill],
             ])
         )
     ]);
