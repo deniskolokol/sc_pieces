@@ -134,7 +134,8 @@ ServerQuit.removeAll;
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     // Tempo.
-    ~tempo = TempoClock.new(90/60).schedAbs(0, { ~tempo.beatsPerBar_(4) });
+    ~bpm = 90;
+    ~tempo = TempoClock.new(~bpm/60).schedAbs(0, { ~tempo.beatsPerBar_(4) });
     ~dur = 1/4;
 
     "> Preparing patterns...".post;
