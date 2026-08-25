@@ -13,18 +13,21 @@ MIDIClient.destinations.do(_.postln);
 
 // Create the MIDIOut object.
 // Replace the strings below with the exact names from your MIDI destination list.
-// For example: ~ifaceMIDIOut = MIDIOut.newByName("Scarlett 2i2 MIDI", "Scarlett 2i2 MIDI Port");
-~ifaceMIDIOut = MIDIOut.newByName("Studio 1824c", "Studio 1824c");
+// For example: ~synthMIDIOut = MIDIOut.newByName("Scarlett 2i2 MIDI", "Scarlett 2i2 MIDI Port");
+~synthMIDIOut = MIDIOut.newByName("Neutron", "Neutron");
 
 // Optional: Set latency to match your server for better sync
-~ifaceMIDIOut.latency = Server.default.latency;
+~synthMIDIOut.latency = Server.default.latency;
 
 // MIDI pattern to send note events to the Neutron.
 (
+~bpm = 90;
+~tempo = TempoClock.new(~bpm/60).schedAbs(0, { ~tempo.beatsPerBar_(4) });
+
 p = Pbind(
     // --- MIDI Specific Keys ---
     \type, \midi,          // This is a MIDI event
-    \midiout, ~ifaceMIDIOut, // Send it to your Neutron
+    \midiout, ~synthMIDIOut, // Send it to your Neutron
     \midicmd, \noteOn,     // The command is a note (default)
     \chan, 0,              // MIDI Channel (0 is channel 1 for Neutron)
 
@@ -37,10 +40,10 @@ p = Pbind(
     inf),
 
     // --- Performance Parameters ---
-    \dur, 0.15, // Duration between notes (quarter notes)
+    \dur, 0.25, // Duration between notes (quarter notes)
     \legato, 0.5, // Note length (0.5 = staccato, 1 = full duration)
     \amp, Pwhite(0.8, 1, inf) // Velocity (MIDI velocity mapped from amp)
-).play;
+).play(~tempo, quant: Quant(4))
 )
 
 
@@ -52,4 +55,4 @@ p.stop;
 
 
 // Panic.
-~ifaceMIDIOut.allNotesOff(0)
+~synthMIDIOut.allNotesOff(0)
